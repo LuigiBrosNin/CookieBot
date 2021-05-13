@@ -4,12 +4,13 @@ const token = '282811649:AAHrmy3pXmhAUs9vDrvJJLaX2IBKGRF6aiQ';
 
 const bot =new TelegramBot (token, {polling: true});
 
-const directory = "D://Cygwin/home/Luizo/cookiejars.txt";// ~/unibot/cookiejars.txt   <- change the location with the server directory
+const directory = "./users.json";// ~/unibot/cookiejars.txt   <- change the location with the server directory
 
 var fs = require ("fs");
 const { isUndefined } = require('util');
-var stream;
-stream = fs.createReadStream(directory);
+
+var users = {}
+loadUsers()
 
 /*
 stream.on ("cookiejars", function (cookiejars){ //when the bot starts, reads the list of cookiejars and prints it in the console
@@ -23,38 +24,44 @@ stream = fs.createWriteStream("./cookiejars.txt"); //writing test, scrapped cuz 
 stream.write("something");
 */
 
-function modcookie(username, amount, directory, textByLine) {//adds an amount of cookies in the username's cookiejar
-    for (let index = 0; index < textByLine.length; index++) {
-        if(textByLine[index].includes(username)){
-            var yourcookies = parseInt(textByLine[index].substr(username.length+1)) + amount;
-            if (yourcookies < 0) yourcookies = 0;
-            textByLine[index] = username + " "+ yourcookies;
-            index = textByLine.length;
-        }
+function loadUsers(){ //copies the list of cookiejars into a dictioary
+    users = JSON.parse(fs.readFile(directory,{encoding:'utf-8'}))
+}
+
+function writeUsers(){ //Copies users and cookie jars into the file
+    fs.writeFile(directory, JSON.stringify(users), {mode:'w+'})
+}
+
+function modcookie(username, amount) { //adds an amount of cookies in the username's cookiejar
+    if (users[username] < 0){
+        users[username] = 0
+        users[username] += amount
     }
-    stream = fs.createWriteStream(directory); 
-    for (let j = 0; j < textByLine.length; j++) stream.write(textByLine[j]+ "\n");
+    writeUsers()
+}
+
+function giveCookies(chatId, giver, reciever, amount){
+    users[giver] -= amount
+    users[reciever] += amount
+    writeUsers()
+    bot.sendMessage(chatId, "@" + giver +" gave "+ amount +"🍪 to @"+ reciever)
 }
 
 bot.onText(/\/cookiejar/, (msg) =>{
-    const chatId= msg.chat.id;
+    const chatId = msg.chat.id;
     const nicc = msg.from.username; //takes the chatid and the nickname
-    var text = fs.readFileSync(directory).toString('utf-8'); //copies the list of cookiejars in a string
-    var textByLine = text.split("\n"); //converts the entire text in an array of strings divided by \n
-    console.log(text); //stamps the list on console, for debug purposes
+    console.log(users); //prints the list on console, for debug purposes
     var isPresent = false;
-    for (let index = 0; index < textByLine.length; index++) { //goes through the array
-        if (textByLine[index].includes(nicc)) { //when it finds the corresponding nickname sends the cookies you have
-            bot.sendMessage(chatId,"@" + msg.from.username + "'s cookiejar:\n"+ textByLine[index].substr(nicc.length+1) +"🍪");
+    for (let [user, cookies] of Object.entries(users)) { //goes through the dictionary and returns a touple with user, cookie amount pairs
+        if (user === nicc) { //when it finds the corresponding nickname sends the cookies you have
             isPresent=true;
-            index = textByLine.length; //if found the index jumps to end the for
+            bot.sendMessage(chatId,"@" + nicc + "'s cookiejar:\n"+ users[nicc] +"🍪");
+            break
         }
     }
-    if (!isPresent) { //if the user is a new user, creates a new cookiejar with 10 cookies on it
-        fs.appendFile(directory , nicc + " 10\n", (err) => {
-            if (err) throw err;
-            bot.sendMessage(chatId, "🍪new cookiejar created!🍪\ni created a new cookiejar with the username @"+ nicc +"\n" + "your cookiejar starts with\n" + 10 + "🍪\n go earn some more!");
-        });
+    if (!isPresent) { //if the user is a new user, creates a new cookiejar with 10 cookies in it
+        users[nicc] = 10
+        writeUsers()
     }
 });
 
@@ -68,29 +75,27 @@ bot.onText(/\/cookiemenu/, (msg) => {
 
 
 bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does not need to be a reply to work)
-    const chatId= msg.chat.id;
+    const chatId = msg.chat.id;
     const nicc = msg.from.username; //takes the chatid and the nickname
     const rec = match[1] //takes the string you wrote (format "@user <amount>")
-    var name_amount= rec.split(" ");
+    var name_amount = rec.split(" ");//TODO: Take into account multiple spaces when splitting which result in '' entries
+    var name_amount = name_amount.filter(function(x){ //Remove empty list entries
+        return x !== ''
+    })
     console.log(name_amount);
-    var text = fs.readFileSync(directory).toString('utf-8'); //copies the list of cookiejars in a string
-    var textByLine = text.split("\n"); //converts the entire text in an array of strings divided by \n
-    console.log(textByLine); //stamps the list on console, for debug purposes
     var isPresent = false;
-    if (name_amount[0].startsWith("@")) { //threat as /give @ n
-        for (let index = 0; index < textByLine.length; index++) { //goes through the array to find the reciver
-            console.log(textByLine[index]);
-            console.log(name_amount[0].substring(1));
-            if (textByLine[index].includes(name_amount[0].substring(1))) { //name_amount[0] should contain the nickname, starts checking ignoring the @
+    if (name_amount[0].startsWith("@")) { //treat as /give @ n
+        for (let [reciever, cookies] of Object.entries(users)) { //goes through the array to find the reciver
+            if (reciever === name_amount[0].substring(1)) { //name_amount[0] should contain the nickname, starts checking ignoring the @
             // ^found the reciver's cookiejar
                 const amount = parseInt(name_amount[1]); //converts whatever's after the @user, could create problems with multiple spaces, gotta check
                 isPresent = true;
 
                 if (isNaN(amount)) amount = 1;                      // edit: more spaces will result in the program only giving one cookie, fair enough
 
-                var reciver = textByLine[index].split(" ");
-                for (let i = 0; i < textByLine.length; i++) { //goes trough to find your cookiejar
-                    if (textByLine[i].includes(nicc)){
+                var reciver = users[reciever];
+                for (let [giver, cookies] of Object.entries(users)) { //goes trough to find your cookiejar
+                    if (giver === nicc){
                     // ^ found your cookiejar
                         var yourcookies = parseInt(textByLine[i].substr(nicc.length+1)) - amount; //calculates your cookies after you give them away (how could you?!?)
                         if (yourcookies < 0) {
@@ -100,7 +105,6 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
                             textByLine[i] = nicc + " " + yourcookies;
                             var updatedjar = parseInt(reciver[1]) + amount;
                             textByLine[index] = reciver[0] + " " + updatedjar; //updates the cookiejars involved
-                            stream = fs.createWriteStream(directory); 
                             for (let j = 0; j < textByLine.length; j++)
                                 stream.write(textByLine[j]+ "\n"); //gotta rewrite the entire file cuz it's either overrite or nothing :/
                             bot.sendMessage(chatId, "@" + nicc +" gave "+ amount +"🍪 to @"+ reciver[0]);
@@ -167,11 +171,8 @@ bot.onText(/\/give/, (msg) => { // just /give (needs to be a reply to work) give
         const nicc = msg.from.username; //takes the chatid and the nickname
         if(msg.reply_to_message == undefined) //prevents the polling error from ealrier in case the message isn't a reply
         bot.sendMessage(chatId,"how to use the /give command:\n1. /give (your message needs to be a reply)\n2. /give <amount> (needs to be a reply)\n3. /give @username <amount>");
-        else{
-            const reciver = msg.reply_to_message.from.username;
-            bot.sendMessage(chatId, "@" + nicc +" gave a 🍪 to @"+ reciver);
-            //todo : recall the function i have to write in the todo above
-        }
+        else
+        giveCookies(chatId, nicc, msg.reply_to_message.from.username, 1)
     }
 });
 
