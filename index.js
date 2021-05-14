@@ -4,7 +4,7 @@ const token = '282811649:AAHrmy3pXmhAUs9vDrvJJLaX2IBKGRF6aiQ';
 
 const bot =new TelegramBot (token, {polling: true});
 
-const directory = "./users.json";// ~/unibot/cookiejars.txt   <- change the location with the server directory
+const directory = "./users.json";// ~/unibot/users.json  <- change the location with the server directory
 
 var fs = require ("fs");
 const { isUndefined } = require('util');
@@ -33,10 +33,8 @@ function writeUsers(){ //Copies users and cookie jars into the file
 }
 
 function modcookie(username, amount) { //adds an amount of cookies in the username's cookiejar
-    if (users[username] < 0){
-        users[username] = 0
-        users[username] += amount
-    }
+    if (users[username] < 0) users[username] = 0
+    users[username] += amount
     writeUsers()
 }
 
@@ -158,8 +156,6 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
 
 // TODO (maybe) : implement the format "give name <amount>" this will be tough cuz it needs to check everyone's name in the group and get its @. 
 // saving the name along with the @ in the txt is not an option since that would cause many other issues with searching and recognising a cookiejar
-// TODO : organize code and rewrite, maybe with a function, cuz this code works but could be simpler
-// pratically i have to move the code from line 68 to 100 in a function that i'll use 3 times, avoiding to rewrite everything again
 
 // game ideas: choose an emoji, pick a random emoji between a selected type and if it corresponds, give cookies, if not do nothing
 //             pay a set amount of cookies for rolling a slot machine and recive a multiplier reward or lose cookies
@@ -179,19 +175,56 @@ bot.onText(/\/give/, (msg) => { // just /give (needs to be a reply to work) give
 bot.onText(/\/games/, (msg) => {
     bot.sendMessage(msg.chat.id, "🕹 games menu! 🎮\n🍀chance: something will happen, you may gain cookies👀\n ", {
         "reply_markup": {
-            "keyboard": [["/"] , ["/"], ["/cookiemenu"]]
+            "keyboard": [["/cookiechance"] , ["/"], ["/cookiemenu"]]
             }
         });
 });
-/*
+
 bot.onText(/\/coockiechance/, (msg) =>{
+    const nicc = msg.from.username
+    const chatid = msg.chat.id
     switch (Math.floor(Math.random() * 100)) {
         case 0:
-            bot.sendMessage(msg.chat.id,"you plant a cookie into the ground, it sprouts in a magnificent cookie tree! @"+msg.from.username+" gains 10🍪 from the harvest!");
+            bot.sendMessage(chatid,"you plant a cookie into the ground, it sprouts in a magnificent cookie tree!\n@"+nicc+" gains 10🍪 from the harvest!")
+            modcookie(nicc,10)
             break;
-    
+        case 1:
+            bot.sendMessage(chatid,"since he worked so hard on this bot,\n@LuigiBrosNin gains a 🍪 :D")
+            modcookie(LuigiBrosNin, 1)
+            break;
+        case 2:
+            bot.sendMessage(chatid,"your grandma comes to visit you.\n@"+nicc+" gains 1🍪 and a kiss from grandma")
+            modcookie(nicc, 1)
+            break;
+        case 3:
+            bot.sendMessage(chatid,"you organize a DnD session so everyone would bring a snack.\n it worked.\n@"+nicc+" gains 4🍪 and the master's handbook")
+            modcookie(nicc, 4)
+            break;
+        case 4:
+            bot.sendMessage(chatid,"your local bakery got an overflow of cookies. they give ou some to balance out the issue.\n@"+nicc+" gains 3🍪")
+            modcookie(nicc, 3)
+            break;
+        case 5:
+            bot.sendMessage(chatid,"you spent all your savings on the cookie sale at the supermarket. it was a wise choice.\n@"+nicc+" gains 5🍪 from the sale")
+            modcookie(nicc, 5)
+            break;
+        case 6:
+            bot.sendMessage(chatid,"you learn how to summon cookies with satanic rituals.\n@"+nicc+" gains 6🍪 and a succubus that can bake cookies")
+            modcookie(nicc, 6)
+            break;
+        case 7:
+            bot.sendMessage(chatid,"lady luck smiled to you. you didn't win the lottery, but you found some cookies.\n@"+nicc+" gains 7🍪 and some good luck")
+            modcookie(nicc, 7)
+            break;
+        case 8:
+            bot.sendMessage(chatid,"life gave you lemons, so you sold them and bought more cookies.\n@"+nicc+" gains 8🍪 and a lemonade stand")
+            modcookie(nicc, 8)
+            break;
+        case 9: //continue from here
+            bot.sendMessage(chatid,"\n@"+nicc+" gains 9🍪 and a succubus that can bake cookies")
+            modcookie(nicc, 6)
+            break;
         default:
             break;
     }
 });
-*/
