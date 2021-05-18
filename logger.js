@@ -14,3 +14,6 @@ function modLog(user, amount, reason){
     fs.appendFile(loggeroni, "[" + dateAndTime() + "] " + user.id + " (@" + giver.username + ") recieved/lost "+ amount +"🍪 from " + reason)
 }
 
+function errorLog(err){
+    fs.appendFile(loggeroni, "[" + dateAndTime() + "] An error has occurred: " + err)
+}

@@ -13,6 +13,10 @@ const { isUndefined } = require('util');
 var users = {}
 loadUsers()
 
+const messageOptions = { //Required after every message that needs to mention the user in case they don't have a username
+    parse_mode: 'MarkdownV2'
+}
+
 /*
 stream.on ("cookiejars", function (cookiejars){ //when the bot starts, reads the list of cookiejars and prints it in the console
     var chunk = cookiejars.String();          // useless but reading test, delete if not wanted
@@ -28,7 +32,7 @@ stream.write("something");
 function loadUsers(){ //copies the list of cookiejars into a dictioary
     fs.readFile(directory, 'utf8', (err, data) => {
         if (err) {
-            console.error(err)
+            logger.errorLog(err)
             return
         }
         users = JSON.parse(data)
@@ -36,10 +40,15 @@ function loadUsers(){ //copies the list of cookiejars into a dictioary
 }
 
 function writeUsers(){ //Copies users and cookie jars into the file
-    fs.writeFile(directory, JSON.stringify(users, null, 4), {flag:'w+'}, err => {}) //null serve a rimpiazzare il replacer che serve da filtro, 4 da un tab e \n per rendere il json leggibile
+    fs.writeFile(directory, JSON.stringify(users, null, 4), {flag:'w+'}, err => { //null serve a rimpiazzare il replacer che serve da filtro, 4 da un tab e \n per rendere il json leggibile
+        if (err) {
+            logger.errorLog(err) //Added an error log in case the file breaks somehow
+            return
+        }
+    }) 
 }
 
-function userExists(userID){
+function userExists(userID){ //Checks if the user is already present in the users json file
     loadUsers()
     for (let [user, cookies] of Object.entries(users)) { //goes through the dictionary and returns a touple with user, cookie amount pairs
         if (user === String(userID)) { //when it finds the corresponding nickname returns true
@@ -47,6 +56,13 @@ function userExists(userID){
         }
     }
     return false
+}
+
+function checkUsername(user){ //Checks if the user has a username, i tested it by removing my username temporarly and the mention works just fine so any errors are in the specific statements and not in this function
+    if (user.username != undefined)
+    return '@' + user.username
+    else
+    return '[' + user.first_name + '](tg://user?id=' + String(user.id) + ')' //If they don't it returns a MarkdownV2 link that acts as a mention of the user based on id
 }
 
 function modcookie(user, amount, casistic) { //adds an amount of cookies in the username's cookiejar
@@ -57,12 +73,12 @@ function modcookie(user, amount, casistic) { //adds an amount of cookies in the 
     logger.modLog(user, amount, casistic)
 }
 
-function giveCookies(chatId, giver, reciever, amount){
+function giveCookies(chatId, giver, reciever, amount){ //Used to exchange cookies between 2 users
     loadUsers()
     users[String(giver.id)] -= amount
     users[String(reciever.id)] += amount
     writeUsers()
-    bot.sendMessage(chatId, "@" + giver.username +" gave "+ amount +"🍪 to @"+ reciever.username)
+    bot.sendMessage(chatId, checkUsername(giver) +" gave "+ amount +"🍪 to "+ checkUsername(reciever), messageOptions) //This is what a message looks like with the new check for usernames, the @ is given in checkUsername
     logger.giveLog(giver, reciever, amount)
 }
 
@@ -71,14 +87,14 @@ bot.onText(/\/cookiejar/, (msg) =>{
     const user = msg.from; //takes the entire user class
     var isPresent = false;
     loadUsers()
-    console.log(user.username); //prints the list on console, for debug purposes
+    console.log(user); //prints the list on console, for debug purposes
     if (userExists(user.id)) { //when it finds the corresponding nickname sends the cookies you have
-        bot.sendMessage(chatId,"@"+user.username+"'s cookiejar:\n"+users[user.id]+"🍪")
+        bot.sendMessage(chatId,checkUsername(user)+"'s cookiejar:\n"+users[user.id]+"🍪",messageOptions)
     }
     else { //if the user is a new user, creates a new cookiejar with 10 cookies in it
         users[String(user.id)] = 10
         writeUsers()
-        bot.sendMessage(chatId,"@"+user.username+"'s cookiejar:\n"+10+"🍪")
+        bot.sendMessage(chatId,checkUsername(user)+"'s cookiejar:\n"+10+"🍪",messageOptions)
     }
 });
 
@@ -96,13 +112,13 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
     const giver = msg.from; //takes the chatid and the nickname
     loadUsers()
     const rec = match[1] //takes the string you wrote (format "@user <amount>")
-    var name_amount = rec.split(" ");//TODO: Take into account multiple spaces when splitting which result in '' entries
+    var name_amount = rec.split(" ");
     var name_amount = name_amount.filter(function(x){ //Remove empty list entries
         return x !== ''
     })
     var reciver = null
     console.log(name_amount);
-    for (var entity of Object.entries(msg.entities)){
+    for (var entity of Object.entries(msg.entities)){ //Checks the message entities and looks for the first mention
         if (entity.type === 'mention'){
             reciver = entity.user
             break
@@ -112,9 +128,9 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
         if (userExists(giver.id) && userExists(reciver.id)) { 
         // ^found the reciver and giver jars
             const amount = parseInt(name_amount[1]); //converts whatever's after the @user
-            if (isNaN(amount)) amount = 1;                      // edit: more spaces will result in the program only giving one cookie, fair enough
+            if (isNaN(amount)) amount = 1; //Invalid numbers are set to 1
             if ((users[String(giver.id)] - amount) < 0) { //calculates your cookies after you give them away (how could you?!?)
-                bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n@" + giver.username + "'s cookiejar:\n"+ users[String(giver.id)] +"🍪");
+                bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + checkUsername(giver) + "'s cookiejar:\n"+ users[String(giver.id)] +"🍪",messageOptions);
             }
             else{
                 giveCookies(chatId, giver, reciver, amount)
@@ -128,7 +144,7 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
         if (isNaN(amount)) amount = 1;
         if (userExists(giver.id) && userExists(reciver.id)){
             if ((users[String(giver.id)] - amount) < 0) {
-                bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n@" + giver + "'s cookiejar:\n"+ textByLine[i].substr(giver.length+1) +"🍪");
+                bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + checkUsername(giver) + "'s cookiejar:\n"+ users[giver.id] +"🍪",messageOptions);
             }
             else{
                 giveCookies(chatId, giver, reciver, amount)
@@ -146,7 +162,7 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
 //             pay a set amount of cookies for rolling a slot machine and recive a multiplier reward or lose cookies
 
 bot.onText(/\/give/, (msg) => { // just /give (needs to be a reply to work) gives 1 cookie without specifying the amount
-    if (msg.text.endsWith("/give") && msg.text.lastIndexOf("/give") == 0)
+    if (msg.text === '/give') //This should work
     {
         const chatId = msg.chat.id;
         const giver = msg.from; //takes the chatid and the nickname
@@ -176,7 +192,7 @@ bot.onText(/\/cookiefruit (.+)/,(msg, match) =>{
     const user = msg.from.username
     const prize = Math.floor(Math.random() * 8) + 3
     var winner
-    if (userExists(user.id)){
+    if (userExists(user.id)){ //Added this check before every minigame so if you try to play it without a cookiejar it tells you to make one
         modcookie(user,-1,"/cookiefruit fee")
         switch (Math.floor(Math.random() * 7)){
             case 0:
@@ -205,13 +221,13 @@ bot.onText(/\/cookiefruit (.+)/,(msg, match) =>{
                 break;
         }
         if("🍎🍐🍊🍋🍌🍉🍪".contains(fruit)){
-            bot.sendMessage(chatid, "rolled "+ winner +" for "+user.username+"'s game\nfruit bet: "+fruit)
+            bot.sendMessage(chatid, "rolled "+ winner +" for "+checkUsername(user)+"'s game\nfruit bet: "+fruit,messageOptions)
             if (fruit === winner) {
-                bot.sendMessage(chatid, "congratulations!\n@"+ user.username +" won "+prize+"🍪")
+                bot.sendMessage(chatid, "congratulations!\n"+ checkUsername(user) +" won "+prize+"🍪",messageOptions)
                 modcookie(user,prize,"/cookiefruit win")
             }
             else{
-                bot.sendMessage(chatid,"better luck next time "+ user.username+" :(\n")
+                bot.sendMessage(chatid,"better luck next time "+ checkUsername(user)+" :(\n",messageOptions)
             }
         }
     }
@@ -277,7 +293,7 @@ bot.onText(/\/coockieslot (.+)/, (msg,match) =>{
                 three ="🍪"
                 break;
         }
-        bot.sendMessage(chatid, user.username+"'s roll results:\n"+one+two+three)
+        bot.sendMessage(chatid, checkUsername(user)+"'s roll results:\n"+one+two+three,messageOptions)
         var roll = one+two+three
         var won = false
         if(roll.contains("🍎🍎")){
@@ -301,12 +317,12 @@ bot.onText(/\/coockieslot (.+)/, (msg,match) =>{
             won = true
         }
         if (won){
-            bot.sendMessage(chatid,"you won!\n"+bet+"🍪 added to @"+user.username+" cookiejar")
+            bot.sendMessage(chatid,"you won!\n"+bet+"🍪 added to "+checkUsername(user)+" cookiejar",messageOptions)
             modcookie(user,bet,"/cookieslot win")
         }
-        else bot.sendMessage(chatid,"better luck next time @"+user.username+" :^)")
+        else bot.sendMessage(chatid,"better luck next time "+checkUsername(user)+" :^)")
     }
-    else bot.sendMessage(chatid,'you need a cookiejar to play games, type /cookiejar to make one')
+    else bot.sendMessage(chatid,'you need a cookiejar to play games, type /cookiejar to make one',messageOptions)
 });
 
 bot.onText(/\/coockiechance/, (msg) =>{
@@ -315,9 +331,8 @@ bot.onText(/\/coockiechance/, (msg) =>{
     if (userExists(user.id)){
         const luck = Math.floor(Math.random() * 100)
         switch (luck) {
-            //TODO cambiare user nei sendmessage con user.username
             case 0:
-                bot.sendMessage(chatid,"you plant a cookie into the ground, it sprouts in a magnificent cookie tree!\n@"+user+" gains 10🍪 from the harvest!")
+                bot.sendMessage(chatid,"you plant a cookie into the ground, it sprouts in a magnificent cookie tree!\n"+checkUsername(user)+" gains 10🍪 from the harvest!",messageOptions)
                 modcookie(user,10,"/coockiechance outcome "+luck)
                 break;
             case 1:
@@ -325,197 +340,197 @@ bot.onText(/\/coockiechance/, (msg) =>{
                 modcookie("LuigiBrosNin", 1,"/coockiechance outcome "+luck)
                 break;
             case 2:
-                bot.sendMessage(chatid,"your grandma comes to visit you.\n@"+user+" gains 1🍪 and a kiss from grandma")
+                bot.sendMessage(chatid,"your grandma comes to visit you.\n"+checkUsername(user)+" gains 1🍪 and a kiss from grandma",messageOptions)
                 modcookie(user, 1,"/coockiechance outcome "+luck)
                 break;
             case 3:
-                bot.sendMessage(chatid,"you organize a DnD session so everyone would bring a snack.\n it worked.\n@"+user+" gains 4🍪 and the master's handbook")
+                bot.sendMessage(chatid,"you organize a DnD session so everyone would bring a snack.\n it worked.\n"+checkUsername(user)+" gains 4🍪 and the master's handbook",messageOptions)
                 modcookie(user, 4,"/coockiechance outcome "+luck)
                 break;
             case 4:
-                bot.sendMessage(chatid,"your local bakery got an overflow of cookies. they give ou some to balance out the issue.\n@"+user+" gains 3🍪")
+                bot.sendMessage(chatid,"your local bakery got an overflow of cookies. they give ou some to balance out the issue.\n"+checkUsername(user)+" gains 3🍪",messageOptions)
                 modcookie(user, 3,"/coockiechance outcome "+luck)
                 break;
             case 5:
-                bot.sendMessage(chatid,"you spent all your savings on the cookie sale at the supermarket. it was a wise choice.\n@"+user+" gains 5🍪 from the sale")
+                bot.sendMessage(chatid,"you spent all your savings on the cookie sale at the supermarket. it was a wise choice.\n"+checkUsername(user)+" gains 5🍪 from the sale",messageOptions)
                 modcookie(user, 5,"/coockiechance outcome "+luck)
                 break;
             case 6:
-                bot.sendMessage(chatid,"you learn how to summon cookies with satanic rituals.\n@"+user+" gains 6🍪 and a succubus that can bake cookies")
+                bot.sendMessage(chatid,"you learn how to summon cookies with satanic rituals.\n"+checkUsername(user)+" gains 6🍪 and a succubus that can bake cookies",messageOptions)
                 modcookie(user, 6,"/coockiechance outcome "+luck)
                 break;
             case 7:
-                bot.sendMessage(chatid,"lady luck smiled to you. you didn't win the lottery, but you found some cookies.\n@"+user+" gains 7🍪 and some good luck")
+                bot.sendMessage(chatid,"lady luck smiled to you. you didn't win the lottery, but you found some cookies.\n"+checkUsername(user)+" gains 7🍪 and some good luck",messageOptions)
                 modcookie(user, 7,"/coockiechance outcome "+luck)
                 break;
             case 8:
-                bot.sendMessage(chatid,"life gave you lemons, so you sold them and bought more cookies.\n@"+user+" gains 8🍪 and a lemonade stand")
+                bot.sendMessage(chatid,"life gave you lemons, so you sold them and bought more cookies.\n"+checkUsername(user)+" gains 8🍪 and a lemonade stand",messageOptions)
                 modcookie(user, 8,"/coockiechance outcome "+luck)
                 break;
             case 9:
-                bot.sendMessage(chatid,"you found a cup of water from the long lost fountain of youth. you use that water as ingredient for the cookies you were backing\n@"+user+" gains 9🍪 and feels a lil older")
+                bot.sendMessage(chatid,"you found a cup of water from the long lost fountain of youth. you use that water as ingredient for the cookies you were backing\n"+checkUsername(user)+" gains 9🍪 and feels a lil older",messageOptions)
                 modcookie(user, 9,"/coockiechance outcome "+luck)
                 break;
             case 10:
-                bot.sendMessage(chatid,"you posted a meme everyone enjoyed.\n@"+user+" gains 3🍪 and the developer of this bot's approval")
+                bot.sendMessage(chatid,"you posted a meme everyone enjoyed.\n"+checkUsername(user)+" gains 3🍪 and the developer of this bot's approval",messageOptions)
                 modcookie(user, 3,"/coockiechance outcome "+luck)
                 break;
             case 11:
-                bot.sendMessage(chatid,"you hacked into this bot and generated yourself some cookies.\n@"+user+" gains 9🍪 and you'd better hope admins don't catch you")
+                bot.sendMessage(chatid,"you hacked into this bot and generated yourself some cookies.\n"+checkUsername(user)+" gains 9🍪 and you'd better hope admins don't catch you",messageOptions)
                 modcookie(user, 9,"/coockiechance outcome "+luck)
                 break;
             case 12:
-                bot.sendMessage(chatid,"you make your way through Hogwarts just to learn how to spawn cookies.\n@"+user+" gains 4🍪 and a magic wand")
+                bot.sendMessage(chatid,"you make your way through Hogwarts just to learn how to spawn cookies.\n"+checkUsername(user)+" gains 4🍪 and a magic wand",messageOptions)
                 modcookie(user, 4,"/coockiechance outcome "+luck)
                 break;
             case 13:
-                bot.sendMessage(chatid,"You offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nin the end you say \"fuck it\" and open a random chest next to the shrine. it had some cookies.\n@"+user+" gains 2🍪 and a gambling addiction")
+                bot.sendMessage(chatid,"You offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nYou offer to the shrine, but gain nothing.\nin the end you say \"fuck it\" and open a random chest next to the shrine. it had some cookies.\n"+checkUsername(user)+" gains 2🍪 and a gambling addiction",messageOptions)
                 modcookie(user, 2,"/coockiechance outcome "+luck)
                 break;
             case 14:
-                bot.sendMessage(chatid,"your life is so miserable, they assign you fairy godparents. you wish the only thing worth wishing.\n@"+user+" gains 1🍪, but you don't keep the fairies.\ni'm sorry.")
+                bot.sendMessage(chatid,"your life is so miserable, they assign you fairy godparents. you wish the only thing worth wishing.\n"+checkUsername(user)+" gains 1🍪, but you don't keep the fairies.\ni'm sorry.",messageOptions)
                 modcookie(user, 1,"/coockiechance outcome "+luck)
                 break;
             case 15:
-                bot.sendMessage(chatid,"this message has only 1% chance to pop up and you were so lucky.\n@"+user+" gains 1🍪 and now knows a secret.\n that secret is how many prompts the developer wrote for this stupid game")
+                bot.sendMessage(chatid,"this message has only 1% chance to pop up and you were so lucky.\n"+checkUsername(user)+" gains 1🍪 and now knows a secret.\n that secret is how many prompts the developer wrote for this stupid game",messageOptions)
                 modcookie(user, 1,"/coockiechance outcome "+luck)
                 break;
             case 16:
-                bot.sendMessage(chatid,"you unistalled league of legends.\n@"+user+" gains 3🍪 and your soul back")
+                bot.sendMessage(chatid,"you unistalled league of legends.\n"+checkUsername(user)+" gains 3🍪 and your soul back",messageOptions)
                 modcookie(user, 3,"/coockiechance outcome "+luck)
                 break;
             case 17:
-                bot.sendMessage(chatid,"you finally pass the logic exam.\n@"+user+" gains 999🍪 and 9 CFU.\n(just kidding, you only gain 5. i'm sorry)")
+                bot.sendMessage(chatid,"you finally pass the logic exam.\n"+checkUsername(user)+" gains 999🍪 and 9 CFU.\n(just kidding, you only gain 5. i'm sorry)",messageOptions)
                 modcookie(user, 5,"/coockiechance outcome "+luck)
                 break;
             case 18:
-                bot.sendMessage(chatid,"you start a notion, gaining everyone's trust and respect.\n@"+user+" gains 8🍪")
+                bot.sendMessage(chatid,"you start a notion, gaining everyone's trust and respect.\n"+checkUsername(user)+" gains 8🍪",messageOptions)
                 modcookie(user, 8,"/coockiechance outcome "+luck)
                 break;
             case 19:
-                bot.sendMessage(chatid,"you discover that cookie clicker exists.\n@"+user+" gains 1🍪 and addiction to the game")
+                bot.sendMessage(chatid,"you discover that cookie clicker exists.\n"+checkUsername(user)+" gains 1🍪 and addiction to the game",messageOptions)
                 modcookie(user, 1,"/coockiechance outcome "+luck)
                 break;
             case 20:
-                bot.sendMessage(chatid,"you start working in a cookie mine as cookiedigger, it pays off.\n@"+user+" gains 4🍪 and Klondike nostalgia")
+                bot.sendMessage(chatid,"you start working in a cookie mine as cookiedigger, it pays off.\n"+checkUsername(user)+" gains 4🍪 and Klondike nostalgia",messageOptions)
                 modcookie(user, 4,"/coockiechance outcome "+luck)
                 break;
             case 21:
-                bot.sendMessage(chatid,"you open up a factory to produce cookies. it bankrupts the next day, but  you keep all production.\n@"+user+" gains 6🍪")
+                bot.sendMessage(chatid,"you open up a factory to produce cookies. it bankrupts the next day, but  you keep all production.\n"+checkUsername(user)+" gains 6🍪",messageOptions)
                 modcookie(user, 6,"/coockiechance outcome "+luck)
                 break;
             case 22:
-                bot.sendMessage(chatid,"you invest some cookies in the cookie stock market. it pays off.\n@"+user+" gains 3🍪 and rising stonks")
+                bot.sendMessage(chatid,"you invest some cookies in the cookie stock market. it pays off.\n"+checkUsername(user)+" gains 3🍪 and rising stonks",messageOptions)
                 modcookie(user, 3,"/coockiechance outcome "+luck)
                 break;
             case 23:
-                bot.sendMessage(chatid,"you build a temple to honor the cookie god. there's no such thing as a cookie god, but you keep the offerings.\n@"+user+" gains 4🍪 and a mitre hat with a cookie on it.")
+                bot.sendMessage(chatid,"you build a temple to honor the cookie god. there's no such thing as a cookie god, but you keep the offerings.\n"+checkUsername(user)+" gains 4🍪 and a mitre hat with a cookie on it.",messageOptions)
                 modcookie(user, 4,"/coockiechance outcome "+luck)
                 break;
             case 24:
-                bot.sendMessage(chatid,"you become CEO of tesla and nasa to explore the universe searching for the legendary cookie planet. banks give full funding on the prject.\n@"+user+" gains 7🍪 (and a meme lord)")
+                bot.sendMessage(chatid,"you become CEO of tesla and nasa to explore the universe searching for the legendary cookie planet. banks give full funding on the prject.\n"+checkUsername(user)+" gains 7🍪 (and a meme lord)",messageOptions)
                 modcookie(user, 7,"/coockiechance outcome "+luck)
                 break;
             case 25:
-                bot.sendMessage(chatid,"you find the philosopher's cookie, that turns gold into cookies. yay!\n@"+user+" gains 6🍪, but your mom can't find her wedding ring")
+                bot.sendMessage(chatid,"you find the philosopher's cookie, that turns gold into cookies. yay!\n"+checkUsername(user)+" gains 6🍪, but your mom can't find her wedding ring",messageOptions)
                 modcookie(user, 6,"/coockiechance outcome "+luck)
                 break;
             case 26:
-                bot.sendMessage(chatid,"you manage to open up a portal to the cookieverse. you manage to grab some cookies before the portal exploded.\n@"+user+" gains 2🍪 and an invasion of cookie monsters")
+                bot.sendMessage(chatid,"you manage to open up a portal to the cookieverse. you manage to grab some cookies before the portal exploded.\n"+checkUsername(user)+" gains 2🍪 and an invasion of cookie monsters",messageOptions)
                 modcookie(user, 2,"/coockiechance outcome "+luck)
                 break;
             case 27:
-                bot.sendMessage(chatid,"you discover time traver to bring here cookies before they were eaten.\n@"+user+" gains 5🍪 and a time paradox")
+                bot.sendMessage(chatid,"you discover time traver to bring here cookies before they were eaten.\n"+checkUsername(user)+" gains 5🍪 and a time paradox",messageOptions)
                 modcookie(user, 5,"/coockiechance outcome "+luck)
                 break;
             case 28:
-                bot.sendMessage(chatid,"you gain control of animatter, so you convert it into cookies.\n@"+user+" gains 4🍪")
+                bot.sendMessage(chatid,"you gain control of animatter, so you convert it into cookies.\n"+checkUsername(user)+" gains 4🍪",messageOptions)
                 modcookie(user, 4,"/coockiechance outcome "+luck)
                 break;
             case 29:
-                bot.sendMessage(chatid,"you manage to convert light itself into cookies. the universe is now pitch black, but you've gained some cookies. it's just hard to find them in the dark\n@"+user+" gains 9🍪")
+                bot.sendMessage(chatid,"you manage to convert light itself into cookies. the universe is now pitch black, but you've gained some cookies. it's just hard to find them in the dark\n"+checkUsername(user)+" gains 9🍪",messageOptions)
                 modcookie(user, 9,"/coockiechance outcome "+luck)
                 break;
             case 30:
-                bot.sendMessage(chatid,"you learn clonation is a thing, so you spend billions into cloning some cookies.\n@"+user+" gains 2🍪 and a crippling debt")
+                bot.sendMessage(chatid,"you learn clonation is a thing, so you spend billions into cloning some cookies.\n"+checkUsername(user)+" gains 2🍪 and a crippling debt",messageOptions,messageOptions)
                 modcookie(user, 2,"/coockiechance outcome "+luck)
                 break;
             case 31:
-                bot.sendMessage(chatid,"you find a cookie on the ground. you better sanitize it before putting it in your cookiejar.\n@"+user+" gains 1🍪 and some soap")
+                bot.sendMessage(chatid,"you find a cookie on the ground. you better sanitize it before putting it in your cookiejar.\n"+checkUsername(user)+" gains 1🍪 and some soap",messageOptions,messageOptions)
                 modcookie(user, 1,"/coockiechance outcome "+luck)
                 break;
             case 32:
-                bot.sendMessage(chatid,"you buy a fortune cookie, and inside it instead of an advice there's another cookie!\n@"+user+" gains 2🍪 and possible future bad choices")
+                bot.sendMessage(chatid,"you buy a fortune cookie, and inside it instead of an advice there's another cookie!\n"+checkUsername(user)+" gains 2🍪 and possible future bad choices",messageOptions,messageOptions)
                 modcookie(user, 2,"/coockiechance outcome "+luck)
                 break;
             case 33:
-                bot.sendMessage(chatid,"a stranger offers you a cookie. you accept despite mom's warnings.\n@"+user+" gains 1🍪 and a drug addiction")
+                bot.sendMessage(chatid,"a stranger offers you a cookie. you accept despite mom's warnings.\n"+checkUsername(user)+" gains 1🍪 and a drug addiction",messageOptions,messageOptions)
                 modcookie(user, 1,"/coockiechance outcome "+luck)
                 break;
             case 34:
-                bot.sendMessage(chatid,"you ask santa Claus for cookies. you learn he isn't real, but you can keep the cookies you left for him.\n@"+user+" gains 3🍪 and a cup of milk")
+                bot.sendMessage(chatid,"you ask santa Claus for cookies. you learn he isn't real, but you can keep the cookies you left for him.\n"+checkUsername(user)+" gains 3🍪 and a cup of milk",messageOptions,messageOptions)
                 modcookie(user, 3,"/coockiechance outcome "+luck)
                 break;
             case 35:// gap i left cuz i'm waiting for some other possibly good commands from alice
-                bot.sendMessage(chatid,"you learn how to actually bake cookies.\n@"+user+" gains 5🍪 and a new skill")
+                bot.sendMessage(chatid,"you learn how to actually bake cookies.\n"+checkUsername(user)+" gains 5🍪 and a new skill",messageOptions,messageOptions)
                 modcookie(user, 5,"/coockiechance outcome "+luck)
                 break;
             case 40:
-                bot.sendMessage(chatid,"while you were taking your cookiejar out for a walk, you trip, letting some cookies fly away.\n@"+user+" loses 2🍪")
+                bot.sendMessage(chatid,"while you were taking your cookiejar out for a walk, you trip, letting some cookies fly away.\n"+checkUsername(user)+" loses 2🍪",messageOptions,messageOptions)
                 modcookie(user, -2,"/coockiechance outcome "+luck)
                 break;
             case 41:
-                bot.sendMessage(chatid,"a zombie invades your house, eating your cookies. another one eats your cousin's brain, but who cares.\n@"+user+" loses 3🍪 and a cousin")
+                bot.sendMessage(chatid,"a zombie invades your house, eating your cookies. another one eats your cousin's brain, but who cares.\n"+checkUsername(user)+" loses 3🍪 and a cousin",messageOptions)
                 modcookie(user, -3,"/coockiechance outcome "+luck)
                 break;
             case 42:
-                bot.sendMessage(chatid,"you ask santa Claus for cookies.\nhe saw your internet history.\n@"+user+" loses 1🍪 but you learn to use incognito")
+                bot.sendMessage(chatid,"you ask santa Claus for cookies.\nhe saw your internet history.\n"+checkUsername(user)+" loses 1🍪 but you learn to use incognito",messageOptions)
                 modcookie(user, -1,"/coockiechance outcome "+luck)
                 break;
             case 43:
-                bot.sendMessage(chatid,"you die. there's nothing after death, just endless darkness. someone steals some cookies from you. you come back to life knowing you cookies are in danger, but it's too late.\nwelp, at least you're alive.\n@"+user+" loses 2🍪 but gains depression")
+                bot.sendMessage(chatid,"you die. there's nothing after death, just endless darkness. someone steals some cookies from you. you come back to life knowing you cookies are in danger, but it's too late.\nwelp, at least you're alive.\n"+checkUsername(user)+" loses 2🍪 but gains depression",messageOptions)
                 modcookie(user, -2,"/coockiechance outcome "+luck)
                 break;
             case 44:
-                bot.sendMessage(chatid,"the succubus you summoned demands payment.\n@"+user+" loses 2🍪 and your soul is now tied to hell")
+                bot.sendMessage(chatid,"the succubus you summoned demands payment.\n"+checkUsername(user)+" loses 2🍪 and your soul is now tied to hell",messageOptions)
                 modcookie(user, -2,"/coockiechance outcome "+luck)
                 break;
             case 45:
-                bot.sendMessage(chatid,"since he worked so hard for this bot, you decide to give the developer a cookie to show your appreciation.\n@"+user+" loses 1🍪 but gains a personal thanks from the dev")
+                bot.sendMessage(chatid,"since he worked so hard for this bot, you decide to give the developer a cookie to show your appreciation.\n"+checkUsername(user)+" loses 1🍪 but gains a personal thanks from the dev",messageOptions)
                 giveCookies(chatid,user,"LuigiBrosNin",1)
                 break;
             case 46:
-                bot.sendMessage(chatid,"you're a simp. you donate some of your cookies to a twitch thot.\n@"+user+" loses 5🍪 and your dignity.")
+                bot.sendMessage(chatid,"you're a simp. you donate some of your cookies to a twitch thot.\n"+checkUsername(user)+" loses 5🍪 and your dignity.",messageOptions)
                 modcookie(user, -5,"/coockiechance outcome "+luck)
                 break;
             case 47:
-                bot.sendMessage(chatid,"the lizard man asks to accept his cookies. you do, but he instantly sells all your info along with some of your cookies.\n@"+user+" loses 4🍪 and your privacy, but now you have a facebook account")
+                bot.sendMessage(chatid,"the lizard man asks to accept his cookies. you do, but he instantly sells all your info along with some of your cookies.\n"+checkUsername(user)+" loses 4🍪 and your privacy, but now you have a facebook account",messageOptions)
                 modcookie(user, -4,"/coockiechance outcome "+luck)
                 break;
             case 48:
                 var index = Math.floor(Math.random() * users.length)
-                bot.sendMessage(chatid,"@"+Object.keys(users)[index]+" found a way to hijack your cookiejar and stole a cookie!\n@"+user+" loses 1🍪\nbut @"+Object.keys(users)[index]+" gains a 🍪!")
+                bot.sendMessage(chatid,""+Object.keys(users)[index]+" found a way to hijack your cookiejar and stole a cookie!\n"+checkUsername(user)+" loses 1🍪\nbut "+Object.keys(users)[index]+" gains a 🍪!",messageOptions)
                 giveCookies(chatid,user,Object.keys(users)[index], 1)
                 break;
             case 49:
                 var index = Math.floor(Math.random() * users.length)
-                bot.sendMessage(chatid,"@"+Object.keys(users)[index]+" stole a cookie while you were in horny jail\n@"+user+" loses 1🍪\nbut @"+Object.keys(users)[index]+" gains a 🍪!")
+                bot.sendMessage(chatid,""+Object.keys(users)[index]+" stole a cookie while you were in horny jail\n"+checkUsername(user)+" loses 1🍪\nbut "+Object.keys(users)[index]+" gains a 🍪!",messageOptions)
                 giveCookies(chatid,user,Object.keys(users)[index], 1)
                 break;
             case 50:
-                bot.sendMessage(chatid,"bro, that way pretty cringe ngl.\n@"+user+" loses 3🍪 and the \"memelord\" tag")
+                bot.sendMessage(chatid,"bro, that way pretty cringe ngl.\n"+checkUsername(user)+" loses 3🍪 and the \"memelord\" tag",messageOptions)
                 modcookie(user, -3,"/coockiechance outcome "+luck)
                 break;
             case 51:
-                bot.sendMessage(chatid,"your illegal cookie traffic got caught and the merch got confiscated.\n@"+user+" loses 4🍪 and you'll likely go to jail")
+                bot.sendMessage(chatid,"your illegal cookie traffic got caught and the merch got confiscated.\n"+checkUsername(user)+" loses 4🍪 and you'll likely go to jail",messageOptions)
                 modcookie(user, -4,"/coockiechance outcome "+luck)
                 break;
             case 52:
-                bot.sendMessage(chatid,"literally nothing happens.\n@"+user+" loses 1🍪 cuz i'm evil")
+                bot.sendMessage(chatid,"literally nothing happens.\n"+checkUsername(user)+" loses 1🍪 cuz i'm evil",messageOptions)
                 modcookie(user, -1,"/coockiechance outcome "+luck)
                 break;
             case 53: //keep going from here.
-                bot.sendMessage(chatid,"\n@"+user+" loses 1🍪 cuz i'm evil")
+                bot.sendMessage(chatid,"\n"+checkUsername(user)+" loses 1🍪 cuz i'm evil",messageOptions)
                 modcookie(user, -1,"/coockiechance outcome "+luck)
                 break;
             default:
