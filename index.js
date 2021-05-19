@@ -370,6 +370,7 @@ bot.onText(/\/cookiechance/, (msg) =>{
     const user = msg.from
     const chatid = msg.chat.id
     const luizo = { 'id': 271081666, 'username':'LuigiBrosNin' }
+    var index
     if (userExists(user.id)){
         const luck = Math.floor(Math.random() * 100)
         switch (luck) {
@@ -482,7 +483,7 @@ bot.onText(/\/cookiechance/, (msg) =>{
                 modcookie(user, 2,"/cookiechance outcome "+luck)
                 break;
             case 27:
-                bot.sendMessage(chatid,"you discover time traver to bring here cookies before they were eaten.\n"+checkUsername(user)+" gains 5🍪 and a time paradox",messageOptions)
+                bot.sendMessage(chatid,"you discover time travel to bring here cookies before they were eaten.\n"+checkUsername(user)+" gains 5🍪 and a time paradox",messageOptions)
                 modcookie(user, 5,"/cookiechance outcome "+luck)
                 break;
             case 28:
@@ -521,9 +522,17 @@ bot.onText(/\/cookiechance/, (msg) =>{
                 bot.sendMessage(chatid,"Are you a good boy? Yes, you areee 😙\nwhat a good puppy you are!! Sit!\nBravoo you deserve a nice cookie lil' doggy!\n"+checkUsername(user)+" gains 5🍪 cuz he's a good boy🐶",messageOptions)
                 modcookie(user, 5,"/cookiechance outcome "+luck)
                 break;
-            case 37:// gap i left cuz i'm waiting for some other possibly good commands from alice
+            case 37:
                 bot.sendMessage(chatid,"you look like someone whose break was scammed away.\n"+checkUsername(user)+" gains 2🍪 cuz i feel your pain...",messageOptions)
                 modcookie(user, 2,"/cookiechance outcome "+luck)
+                break;
+            case 38:
+                bot.sendMessage(chatid,"your last instagram post where you flex your bum is doing very well.\n"+checkUsername(user)+" gains 3🍪 and a irl stalker",messageOptions)
+                modcookie(user, 3,"/cookiechance outcome "+luck)
+                break;
+            case 39:
+                bot.sendMessage(chatid,"you drank your daily 1,5L of water. good job.\n"+checkUsername(user)+" gains 4🍪. Stay hydrated",messageOptions)
+                modcookie(user, 4,"/cookiechance outcome "+luck)
                 break;
             case 40:
                 bot.sendMessage(chatid,"while you were taking your cookiejar out for a walk, you trip, letting some cookies fly away.\n"+checkUsername(user)+" loses 2🍪",messageOptions)
@@ -558,12 +567,12 @@ bot.onText(/\/cookiechance/, (msg) =>{
                 modcookie(user, -4,"/cookiechance outcome "+luck)
                 break;
             case 48:
-                var index = Math.floor(Math.random() * users.length)
+                index = Math.floor(Math.random() * users.length)
                 bot.sendMessage(chatid,""+Object.keys(users)[index]+" found a way to hijack your cookiejar and stole a cookie!\n"+checkUsername(user)+" loses 1🍪\nbut "+Object.keys(users)[index]+" gains a 🍪!",messageOptions)
                 giveCookies(chatid,user,Object.keys(users)[index], 1)
                 break;
             case 49:
-                var index = Math.floor(Math.random() * users.length)
+                index = Math.floor(Math.random() * users.length)
                 bot.sendMessage(chatid,""+Object.keys(users)[index]+" stole a cookie while you were in horny jail\n"+checkUsername(user)+" loses 1🍪\nbut "+Object.keys(users)[index]+" gains a 🍪!",messageOptions)
                 giveCookies(chatid,user,Object.keys(users)[index], 1)
                 break;
@@ -588,8 +597,133 @@ bot.onText(/\/cookiechance/, (msg) =>{
                 modcookie(user, -4,"/cookiechance outcome "+luck)
                 break;
             case 55: //keep going from here.
-                bot.sendMessage(chatid,"papere\n"+checkUsername(user)+" loses 4🍪 but gains an invitation to X factor",messageOptions)
+                bot.sendMessage(chatid,"your personal cookiebaking machine became obsolite, you should change it.\n"+checkUsername(user)+" loses 5🍪 for trying to sell your grandma. not cool.",messageOptions)
+                modcookie(user, -5,"/cookiechance outcome "+luck)
+                break;
+            case 56:
+                bot.sendMessage(chatid,"skidaddle skidoodle your dick is now... not a cookie.\n"+checkUsername(user)+" loses 1🍪 and better deal with it",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 57:
+                bot.sendMessage(chatid,"you make your way trough and find the true infinite source of cookies. you're rich. everyone will bow before your cookiejar.\ndrin drin.\n"+checkUsername(user)+" loses 3🍪 and snaps back to reality.",messageOptions)
+                modcookie(user, -3,"/cookiechance outcome "+luck)
+                break;
+            case 58:
+                bot.sendMessage(chatid,"the teacher saw you wearing a hoodie next to some kids punching to death a first-year. guess who got detention.\n"+checkUsername(user)+" loses 2🍪",messageOptions)
+                modcookie(user, -2,"/cookiechance outcome "+luck)
+                break;
+            case 59:
+                bot.sendMessage(chatid,"someone from the future invented time travel and went back in time to steal your cookies. huh. weird.\n"+checkUsername(user)+" loses 5🍪",messageOptions)
+                modcookie(user, -5,"/cookiechance outcome "+luck)
+                break;
+            case 60:
+                bot.sendMessage(chatid,"you plant a cookie into the ground. a fox steals it before it grows into a cookie tree\n"+checkUsername(user)+" loses 1🍪 but now your nose gets longer whenever you tell a lie",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 61:
+                bot.sendMessage(chatid,"you lived in a small house, on a hill. you baked cookies while your moms watched christian podcast at the television. life was simple. and you were both happy. [...]\n"+checkUsername(user)+" loses 3🍪 and you find yourself in a really weird place...",messageOptions)
+                modcookie(user, -3,"/cookiechance outcome "+luck)
+                break;
+            case 62:
+                bot.sendMessage(chatid,"you see a cute duck and you can't help it.\n"+checkUsername(user)+" loses 1🍪 to feed the duck",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 63:
+                bot.sendMessage(chatid,"you forgot you were baking cookies. the oven ran away with the cookies.\n"+checkUsername(user)+" loses 2🍪 and an oven",messageOptions)
+                modcookie(user, -2,"/cookiechance outcome "+luck)
+                break;
+            case 64:
+                bot.sendMessage(chatid,"you try to corrupt the cookiebot dev to add cookies on your cookiejar with nuts. it works, but the OTHER dev catches you.\n"+checkUsername(user)+" loses 5🍪, but Luizo kept the nuts",messageOptions)
+                modcookie(user, -2,"/cookiechance outcome "+luck)
+                break;
+            case 65:
+                bot.sendMessage(chatid,"you are now immortal. you also discover cookies can rotten. it wasn't a problem when you were mortal... but now...\n"+checkUsername(user)+" loses 3🍪, they rotten away",messageOptions)
+                modcookie(user, -3,"/cookiechance outcome "+luck)
+                break;
+            case 66:
+                index = Math.floor(Math.random() * users.length)
+                bot.sendMessage(chatid,"/give "+Object.keys(users)[index]+" 1\n"+checkUsername(user)+" loses 1🍪\nbut "+Object.keys(users)[index]+" gains a 🍪!\n(that's how /give works duh)",messageOptions)
+                giveCookies(chatid,user,Object.keys(users)[index], 1)
+                break;
+            case 67:
+                bot.sendMessage(chatid,"shrek demands some of your cookies. you can't really say no.\n"+checkUsername(user)+" loses 4🍪 but can now stay in the swamp",messageOptions)
                 modcookie(user, -4,"/cookiechance outcome "+luck)
+                break;
+            case 68:
+                bot.sendMessage(chatid,"the enemy stand user steals some of your cookies.\n"+checkUsername(user)+" loses 4🍪",messageOptions)
+                modcookie(user, -4,"/cookiechance outcome "+luck)
+                break;
+            case 69:
+                bot.sendMessage(chatid,"normally this would be a negative outcome... but you rolled the funny number... soooo...\n"+checkUsername(user)+" gains 69🍪 (just kidding, you only gain 6. don't wanna break the economy i'm sorry)",messageOptions)
+                modcookie(user, 6,"/cookiechance outcome "+luck)
+                break;
+            case 70:
+                bot.sendMessage(chatid,"gain cookies!\noh wait, i gave them to the wrong dude...\n"+Object.keys(users)[index]+" gains 1🍪 by mistake",messageOptions)
+                modcookie(Object.keys(users)[index], 1,"/cookiechance outcome "+luck)
+                break;
+            case 71:
+                bot.sendMessage(chatid,"you failed NNN this year. too bad! \n"+checkUsername(user)+" loses 3🍪 and godly powers",messageOptions)
+                modcookie(user, -3,"/cookiechance outcome "+luck)
+                break;
+            case 72:
+                bot.sendMessage(chatid,"Dio B. kisses your crush. you don't care, but he also ate the cookies she baked for you.\n"+checkUsername(user)+" loses 4🍪",messageOptions)
+                modcookie(user, -4,"/cookiechance outcome "+luck)
+                break;
+            case 73:
+                bot.sendMessage(chatid,"Scout decided that a bucket of chicken wasn't enough anymore.\n"+checkUsername(user)+" loses 2🍪",messageOptions)
+                modcookie(user, -2,"/cookiechance outcome "+luck)
+                break;
+            case 74:
+                bot.sendMessage(chatid,"you lose in a pokemon battle but you don't have any money. pheraps there's something else she wants?\n"+checkUsername(user)+" loses 1🍪 and a gym medal",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 75:
+                bot.sendMessage(chatid,"you make a pentakill in league of legends. good job.\n"+checkUsername(user)+" loses 5🍪",messageOptions)
+                modcookie(user, -5,"/cookiechance outcome "+luck)
+                break;
+            case 76:
+                bot.sendMessage(chatid,"a velociraptor breaks in your house. instead of throwing bananas at you while you study, he eats some cookies. what a douch.\n"+checkUsername(user)+" loses 3🍪",messageOptions)
+                modcookie(user, -3,"/cookiechance outcome "+luck)
+                break;
+            case 77:
+                bot.sendMessage(chatid,"you look in the sky. it's a bird! it's a plane! no... it's the magical cookiestealer!\n"+checkUsername(user)+" loses 1🍪",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 78:
+                index = Math.floor(Math.random() * users.length)
+                bot.sendMessage(chatid,"POV: you're in Naples.\n "+Object.keys(users)[index]+" steals from you.\n"+checkUsername(user)+" loses 1🍪\nbut "+Object.keys(users)[index]+" gains a 🍪!\n(that's how /give works duh)",messageOptions)
+                giveCookies(chatid,user,Object.keys(users)[index], 1)
+                break;
+            case 79:
+                bot.sendMessage(chatid,"you forgot the ogre's name from the movie Shrek.\n"+checkUsername(user)+" loses 1🍪 but gains alzheimer",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 80:
+                bot.sendMessage(chatid,"you look in the sky. it's a bird! it's a plane! no... it's the magical cookiestealer!\n"+checkUsername(user)+" loses 1🍪",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+            case 81:
+                bot.sendMessage(chatid,"a headcrab attack your cookiejar.\n"+checkUsername(user)+" loses 2🍪",messageOptions)
+                modcookie(user, -2,"/cookiechance outcome "+luck)
+                break;
+            case 82:
+                bot.sendMessage(chatid,"you forgot how stonks work, you give some cookies away for free\n"+checkUsername(user)+" loses 3🍪 and the economy degree",messageOptions)
+                modcookie(user, -3,"/cookiechance outcome "+luck)
+                break;
+            case 83:
+                bot.sendMessage(chatid,"a Wrinkler starts consuming your biggest cookie.\n"+checkUsername(user)+" loses 1🍪",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 84:
+                bot.sendMessage(chatid,"a talking flower claims to be your friend. he wasn't.\n"+checkUsername(user)+" loses 2🍪",messageOptions)
+                modcookie(user, -2,"/cookiechance outcome "+luck)
+                break;
+            case 85:
+                bot.sendMessage(chatid,"4 armed men with clown masks rob your cookiejar\n"+checkUsername(user)+" loses 4🍪",messageOptions)
+                modcookie(user, -4,"/cookiechance outcome "+luck)
+                break;
+            case 86:
+                bot.sendMessage(chatid,"a madman with a shovel fell from the sky and grabbed one of your cookies before blasting away\n"+checkUsername(user)+" loses 1🍪",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
                 break;
             default:
                 break;
