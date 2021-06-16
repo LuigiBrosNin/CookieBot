@@ -101,9 +101,9 @@ bot.onText(/\/cookiejar/, (msg) =>{
 });
 
 bot.onText(/\/cookiemenu/, (msg) => {
-    bot.sendMessage(msg.chat.id, "🍪 here's your cookie menu 🍪\n🍯cookiejar:\n see how many 🍪 you have in your cookiejar or if you don't have one, it creates one\n✋🏻give:\n 1. /give (your message needs to be a reply)\n 2. /give <amount> (needs to be a reply)\n 3. /give @username <amount>\n alternatively, you can reply with \"🍪\" and it will act as a normal /give, therefore needs to be a reply\n🎮games:\n open the games menu", {
+    bot.sendMessage(msg.chat.id, "🍪 here's your cookie menu 🍪\n🍯cookiejar:\n see how many 🍪 you have in your cookiejar or if you don't have one, it creates one\n✋🏻give:\n 1. /give (your message needs to be a reply)\n 2. /give <amount> (needs to be a reply)\n 3. /give @username <amount>\n alternatively, you can reply with \"🍪\" and it will act as a normal /give, therefore needs to be a reply\n🎮games:\n open the games menu\n🏆leaderboard:\n see the top cookiejars!", {
     "reply_markup": {
-        "keyboard": [["/cookiejar"] , ["/give"], ["/games"]]
+        "keyboard": [["/cookiejar"] , ["/give"], ["/games"], ["/leaderboard"]]
         }
     });
     });
@@ -201,7 +201,7 @@ bot.onText(/🍪/, (msg) => { // just 🍪 (needs to be a reply to work) gives 1
 });
 
 bot.onText(/\/games/, (msg) => {
-    bot.sendMessage(msg.chat.id, "🕹 games menu! 🎮\n🍀chance:\n something will happen, you may gain 🍪 👀\n🍐cookiefruit:\n pick one of the fruits below\n 🍎🍐🍊🍋🍌🍉🍪\n and put it next to the command like this\n /cookiefruit 🍐\n and pray RNGesus you get it right to win some cookies!\n playing fee is 1🍪\n you can win between 3 and 10🍪.\n🎰cookieslot:\n /cookieslot <amount>\n bet what you want!\n gain up to 8 times your bet\n (max you can gain is a x7 multiplier, min is x1.5)\n the price for playing is the amount you bet\n🍀good luck!🍀", {
+    bot.sendMessage(msg.chat.id, "🕹 games menu! 🎮\n🍀chance:\n something will happen, you may gain 🍪 👀\n🍐cookiefruit:\n pick one of the fruits below\n 🍎🍐🍊🍋🍌🍉🍪\n and put it next to the command like this\n /cookiefruit 🍐\n and pray RNGesus you get it right to win some cookies! \n playing fee is 1🍪\n you can win between 3 and 10🍪.\n🎰cookieslot:\n /cookieslot <amount>\n bet what you want! \n gain up to 8 times your bet\n (max you can gain is a x7 multiplier, min is x1.5)\n the price for playing is the amount you bet\n🍀good luck!🍀", {
         "reply_markup": {
             "keyboard": [["/cookiechance"] , ["/cookiefruit"],["/cookieslot"], ["/cookiemenu"]]
             }
@@ -346,17 +346,17 @@ bot.onText(/\/cookieslot (.+)/, (msg,match) =>{
         }
         if(roll.lastIndexOf("🍐") != roll.indexOf("🍐")){
             if(roll.includes("🍐🍐🍐")) bet = bet*4
-            else bet = bet*2
+            else bet = bet*1.5
             won = true
         }
         if(roll.lastIndexOf("🍌") != roll.indexOf("🍌")){
             if(roll.includes("🍌🍌🍌")) bet = bet*6
-            else bet = bet*2.5
+            else bet = bet*1.5
             won = true
         }
         if(roll.lastIndexOf("🍪") != roll.indexOf("🍪")){
             if(roll.includes("🍪🍪🍪")) bet = bet*8
-            else bet = bet*3
+            else bet = bet*2
             won = true
         }
         bet= Math.floor(bet)
@@ -378,7 +378,7 @@ bot.onText(/\/cookiechance/, (msg) =>{
         const luck = Math.floor(Math.random() * 100)
         switch (luck) {
             case 0:
-                bot.sendMessage(chatid,"you plant a cookie into the ground, it sprouts in a magnificent cookie tree!\n"+getMention(user)+" gains 10🍪 from the harvest!",messageOptions)
+                bot.sendMessage(chatid,"you plant a cookie into the ground, it sprouts in a magnificent cookie tree! \n"+getMention(user)+" gains 10🍪 from the harvest! ",messageOptions)
                 modcookie(user,10,"/cookiechance outcome "+luck)
                 break;
             case 1:
@@ -727,6 +727,58 @@ bot.onText(/\/cookiechance/, (msg) =>{
             case 86:
                 bot.sendMessage(chatid,"a madman with a shovel fell from the sky and grabbed one of your cookies before blasting away\n"+getMention(user)+" loses 1🍪",messageOptions)
                 modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 87:
+                bot.sendMessage(chatid,"you manage to diss the CEO of Dissing and flame.\n"+getMention(user)+" loses 2🍪 because fuck you",messageOptions)
+                modcookie(user, -2,"/cookiechance outcome "+luck)
+                break;
+            case 88:
+                bot.sendMessage(chatid,"you're using this command too much.\n(nah, this is just random. you're still losing cookies tho)\n"+getMention(user)+" loses 2🍪",messageOptions)
+                modcookie(user, -2,"/cookiechance outcome "+luck)
+                break;
+            case 89:
+                bot.sendMessage(chatid,"thanks to your epic fortnite gamer skills, you manage to stay a virgin forever\n"+getMention(user)+" loses 3🍪 but gain a fit forearm",messageOptions)
+                modcookie(user, -3,"/cookiechance outcome "+luck)
+                break;
+            case 90:
+                bot.sendMessage(chatid,"with the power of friendship, you gain cookies! ...but you have no friends\n"+getMention(user)+" loses 5🍪 and gains actual depression",messageOptions)
+                modcookie(user, -5,"/cookiechance outcome "+luck)
+                break;
+            case 91:
+                bot.sendMessage(chatid,"you mistakenly think that giraffes exist\n"+getMention(user)+" loses 1🍪, snap back to reality",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 92:
+                bot.sendMessage(chatid,"you mistakenly think 3D girls are better than 2D girls\n"+getMention(user)+" loses 3🍪, just like the dimensions you like",messageOptions)
+                modcookie(user, -3,"/cookiechance outcome "+luck)
+                break;
+            case 93:
+                bot.sendMessage(chatid,"a masked french weirdo just backstabs you and steals your cookies\n"+getMention(user)+" loses 4🍪, there's a spy creepin' around here!",messageOptions)
+                modcookie(user, -4,"/cookiechance outcome "+luck)
+                break;
+            case 94:
+                bot.sendMessage(chatid,"you get stuck and call your stepbro to help you out. He didn't fuck you, but ate your cookies.\n"+getMention(user)+" loses 4🍪 but gains a body to conceal. that fucker had to pay for what he has done",messageOptions)
+                modcookie(user, -4,"/cookiechance outcome "+luck)
+                break;
+            case 95:
+                bot.sendMessage(chatid,"you live the dream of your life and get isekai'd in a fantasy world with a lot of cute girls who will eventually become your harem.\nbut you left the cookiejar at home open.\n"+getMention(user)+" loses 3🍪 but gains an harem, altrough... they're all lolis so you can't do much anyway",messageOptions)
+                modcookie(user, -3,"/cookiechance outcome "+luck)
+                break;
+            case 96:
+                bot.sendMessage(chatid,"/give 9999🍪\nerror: \"nice try\"."+getMention(user)+" loses 1🍪 ",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 97:
+                bot.sendMessage(chatid,"you didn't donate to the developer's parteon.\n"+getMention(user)+" loses 1🍪 (it doesn't exist, but i'mma still getting this cookie out your jar)",messageOptions)
+                modcookie(user, -1,"/cookiechance outcome "+luck)
+                break;
+            case 98:
+                bot.sendMessage(chatid,"waking up, you realize you live in a world without enough cookies.\n"+getMention(user)+" loses 2🍪 ",messageOptions)
+                modcookie(user, -2,"/cookiechance outcome "+luck)
+                break;
+            case 99:
+                bot.sendMessage(chatid,"yooo this is case 99! congrats! you win:\n"+getMention(user)+" loses 9🍪",messageOptions)
+                modcookie(user, -9,"/cookiechance outcome "+luck)
                 break;
             default:
                 break;
