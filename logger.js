@@ -18,17 +18,29 @@ function dateAndTime(){
     return date + ' ' + time
 }
 
+function checkUsername(user){
+    if (user.username != null){
+        return '@' + user.username
+    }
+    else{
+        if (user.last_name != null) return user.first_name + ' ' + user.last_name
+        else return user.first_name
+    }
+}
+
 function giveLog(giver, reciver, amount){
-    fs.appendFile(loggeroni, "[" + dateAndTime() + "] " + giver.id + " (@" + giver.username + ") gave "+ amount +"🍪 to "+ reciver.id + " (@" + reciver.username + ")")
+    fs.appendFile(loggeroni, "[" + dateAndTime() + "] " + giver.id + " ("+ checkUsername(giver) +") gave "+ amount +"🍪 to "+ reciver.id + " (" + checkUsername(giver) + ")\n",() => {})
     cleanFile()
 }
 
 function modLog(user, amount, reason){
-    fs.appendFile(loggeroni, "[" + dateAndTime() + "] " + user.id + " (@" + giver.username + ") recieved/lost "+ amount +"🍪 from " + reason)
+    fs.appendFile(loggeroni, "[" + dateAndTime() + "] " + user.id + " (" + checkUsername(user) + ") recieved/lost "+ amount +"🍪 from " + reason + "\n",() => {})
     cleanFile()
 }
 
 function errorLog(err){
-    fs.appendFile(loggeroni, "[" + dateAndTime() + "] An error has occurred: " + err)
+    fs.appendFile(loggeroni, "[" + dateAndTime() + "] An error has occurred: " + err + "\n", () => {})
     cleanFile()
 }
+
+module.exports = {modLog, giveLog, errorLog}
