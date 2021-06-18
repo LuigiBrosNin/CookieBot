@@ -61,8 +61,10 @@ function userExists(userID){ //Checks if the user is already present in the user
 }
 //Renamed to getMention for clarity
 function getMention(user){ //Checks if the user has a username, i tested it by removing my username temporarly and the mention works just fine so any errors are in the specific statements and not in this function
-    if (user.username != undefined)
-    return '@' + user.username
+    if (user.username != undefined){
+        let ret = user.username.replace("_", "\\_")
+        return '@' + ret
+    }
     else
     return '[' + user.first_name + '](tg://user?id=' + String(user.id) + ')' //If they don't it returns a MarkdownV2 link that acts as a mention of the user based on id
 }
@@ -166,7 +168,7 @@ bot.onText(/\/give/, (msg) => { // just /give (needs to be a reply to work) give
         const chatId = msg.chat.id;
         const giver = msg.from; //takes the chatid and the nickname
         if(msg.reply_to_message == undefined) //prevents the polling error from ealrier in case the message isn't a reply
-        bot.reply_to_message(chatId,"how to use the /give command:\n1. /give (your message needs to be a reply)\n2. /give <amount> (needs to be a reply)\n3. /give @username <amount>\nalternatively, you can reply with \"🍪\" and it will act as a normal /give, therefore needs to be a reply");
+        bot.sendMessage(chatId,"how to use the /give command:\n1. /give (your message needs to be a reply)\n2. /give <amount> (needs to be a reply)\n3. /give @username <amount>\nalternatively, you can reply with \"🍪\" and it will act as a normal /give, therefore needs to be a reply");
         else{
             const reciver = msg.reply_to_message.from
             if (userExists(giver.id) && userExists(reciver.id)){
