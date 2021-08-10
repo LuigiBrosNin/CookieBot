@@ -1,5 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const logger = require('./logger')
+const userClass = require('./userClass')
 
 const token = '282811649:AAHrmy3pXmhAUs9vDrvJJLaX2IBKGRF6aiQ';
 
@@ -9,7 +10,7 @@ const directory = "./users.json";
 
 var fs = require ("fs");
 const { isUndefined } = require('util');
-const { set } = require('lodash');
+const { set, random } = require('lodash');
 const { SSL_OP_EPHEMERAL_RSA } = require('constants');
 
 var users = {}
@@ -19,24 +20,13 @@ const messageOptions = { //Required after every message that needs to mention th
     parse_mode: 'MarkdownV2'
 }
 
-/*
-stream.on ("cookiejars", function (cookiejars){ //when the bot starts, reads the list of cookiejars and prints it in the console
-    var chunk = cookiejars.String();          // useless but reading test, delete if not wanted
-    console.log(chunk);
-});
-*/
-
-/*
-stream = fs.createWriteStream("./cookiejars.txt"); //writing test, scrapped cuz it overrides the file
-stream.write("something");
-*/
-
 function loadUsers(){ //copies the list of cookiejars into a dictioary
     fs.readFile(directory, 'utf8', (err, data) => {
         if (err) {
             logger.errorLog(err)
             return
         }
+        var i = 0
         users = JSON.parse(data)
     })
 }
@@ -47,40 +37,47 @@ function writeUsers(){ //Copies users and cookie jars into the file
             logger.errorLog(err) //Added an error log in case the file breaks somehow
             return
         }
-    }) 
+    })
+}
+
+function updateUser(id, username, firstName, lastName){
+    users[id]['username'] = username
+    users[id]['firstName'] = firstName
+    users[id]['lastName'] = lastName
 }
 
 function userExists(userID){ //Checks if the user is already present in the users json file
     loadUsers()
-    for (let [user, cookies] of Object.entries(users)) { //goes through the dictionary and returns a touple with user, cookie amount pairs
-        if (user === String(userID)) { //when it finds the corresponding nickname returns true
+    for (let [user, other] of Object.entries(users)) { //goes through the dictionary and returns a touple with user, cookie amount pairs
+        if (user['id'] === String(userID)) { //when it finds the corresponding nickname returns true
             return true
         }
     }
     return false
 }
 //Renamed to getMention for clarity
-function getMention(user){ //Checks if the user has a username, i tested it by removing my username temporarly and the mention works just fine so any errors are in the specific statements and not in this function
-    if (user.username != undefined){
-        let ret = user.username.replace("_", "\\_")
+function getMention(user){ 
+    if (user.username != undefined || users[user.id]['username'] != undefined){
+        let ret = (user.username != undefined) ? user['username'].replace("_", "\\_") : users[user.id]['username'].replace("_", "\\_") //Ternary operator
         return '@' + ret
     }
-    else
-    return '[' + user.first_name + '](tg://user?id=' + String(user.id) + ')' //If they don't it returns a MarkdownV2 link that acts as a mention of the user based on id
+    else return (user.first_name != undefined) ? '[' + user.first_name + '](tg://user?id=' + String(user.id) + ')' : '[' + users[user.id]['firstName'] + '](tg://user?id=' + String(user.id) + ')' //If they don't have a username it returns a MarkdownV2 link that acts as a mention of the user based on id, also another ternary
 }
 
 function modcookie(user, amount, casistic) { //adds an amount of cookies in the username's cookiejar
     loadUsers()
-    users[String(user.id)] += amount
-    if (users[String(user.id)] < 0) users[String(user.id)] = 0
+    users[String(user.id)]['cookies'] += amount
+    if (users[String(user.id)]['cookies'] < 0) users[String(user.id)]['cookies'] = 0
+    updateUser(user.id, user.username, user.first_name, user.last_name)
     writeUsers()
     logger.modLog(user, amount, casistic)
 }
 
 function giveCookies(chatId, giver, reciever, amount){ //Used to exchange cookies between 2 users
     loadUsers()
-    users[String(giver.id)] -= amount
-    users[String(reciever.id)] += amount
+    users[String(giver.id)]['cookies'] -= amount
+    users[String(reciever.id)]['cookies'] += amount
+    updateUser(giver.id, giver.username, giver.first_name, giver.last_name)
     writeUsers()
     bot.sendMessage(chatId, getMention(giver) +" gave "+ amount +"🍪 to "+ getMention(reciever), messageOptions) //This is what a message looks like with the new check for usernames, the @ is given in checkUsername
     logger.giveLog(giver, reciever, amount)
@@ -96,7 +93,13 @@ bot.onText(/\/cookiejar/, (msg) =>{
         bot.sendMessage(chatId,getMention(user)+"'s cookiejar:\n"+users[String(user.id)]+"🍪",messageOptions)
     }
     else { //if the user is a new user, creates a new cookiejar with 10 cookies in it
-        users[String(user.id)] = 10
+        users[String(user.id)] = {
+            'id': String(user.id),
+            'username': user.username,
+            'firstName': user.first_name,
+            'lastName': user.last_name,
+            'cookies': 10
+        }
         writeUsers()
         bot.sendMessage(chatId,getMention(user)+"'s cookiejar:\n"+10+"🍪",messageOptions)
     }
@@ -122,19 +125,24 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
     })
     var reciver = null
     console.log(name_amount);
-    for (var entity of Object.entries(msg.entities)){ //Checks the message entities and looks for the first mention
-        if (entity.type === 'mention'){
-            reciver = entity.user
-            break
+    if (msg.entities != undefined){
+        for (var entity of Object.entries(msg.entities)){ //Checks the message entities and looks for the first mention
+            if (entity.type === 'mention'){
+                reciver = entity.user
+                break
+            }
         }
     }
+    
     if (reciver != null) { //treat as /give @ n
-        if (userExists(giver.id) && userExists(reciver.id)) { 
+        if (userExists(giver.id) && userExists(reciver.id)) {
         // ^found the reciver and giver jars
+            updateUser(giver.id, giver.username, giver.first_name, giver.last_name)
+            updateUser(reciver.id, reciver.username, reciver.first_name, reciver.last_name)
             const amount = parseInt(name_amount[1]); //converts whatever's after the @user
             if (isNaN(amount)) amount = 1; //Invalid numbers are set to 1
-            if ((users[String(giver.id)] - amount) < 0) { //calculates your cookies after you give them away (how could you?!?)
-                bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + getMention(giver) + "'s cookiejar:\n"+ users[String(giver.id)] +"🍪",messageOptions);
+            if ((users[String(giver.id)]['cookies'] - amount) < 0) { //calculates your cookies after you give them away (how could you?!?)
+                bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + getMention(giver) + "'s cookiejar:\n"+ users[String(giver.id)]['cookies'] +"🍪",messageOptions);
             }
             else{
                 giveCookies(chatId, giver, reciver, amount)
@@ -147,8 +155,10 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
         var amount = parseInt(match[1]); //converts the string in integer
         if (isNaN(amount)) amount = 1;
         if (userExists(giver.id) && userExists(reciver.id)){
-            if ((users[String(giver.id)] - amount) < 0) {
-                bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + getMention(giver) + "'s cookiejar:\n"+ users[giver.id] +"🍪",messageOptions);
+            updateUser(giver.id, giver.username, giver.first_name, giver.last_name)
+            updateUser(reciver.id, reciver.username, reciver.first_name, reciver.last_name)
+            if ((users[String(giver.id)]['cookies'] - amount) < 0) {
+                bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + getMention(giver) + "'s cookiejar:\n"+ users[giver.id]['cookies'] +"🍪",messageOptions);
             }
             else{
                 giveCookies(chatId, giver, reciver, amount)
@@ -172,8 +182,10 @@ bot.onText(/\/give/, (msg) => { // just /give (needs to be a reply to work) give
         else{
             const reciver = msg.reply_to_message.from
             if (userExists(giver.id) && userExists(reciver.id)){
-                if ((users[String(giver.id)] - amount) < 0) {
-                    bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + getMention(giver) + "'s cookiejar:\n"+ users[giver.id] +"🍪",messageOptions);
+                updateUser(giver.id, giver.username, giver.first_name, giver.last_name)
+                updateUser(reciver.id, reciver.username, reciver.first_name, reciver.last_name)
+                if ((users[String(giver.id)]['cookies'] - amount) < 0) {
+                    bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + getMention(giver) + "'s cookiejar:\n"+ users[giver.id]['cookies'] +"🍪",messageOptions);
                 }
                 else giveCookies(chatId, giver, reciver, amount)
             }
@@ -181,7 +193,7 @@ bot.onText(/\/give/, (msg) => { // just /give (needs to be a reply to work) give
         }
     }
 });
-
+//Changed until here
 bot.onText(/🍪/, (msg) => { // just 🍪 (needs to be a reply to work) gives 1 cookie without specifying the amount
     if (msg.text === '🍪')
     {
@@ -192,8 +204,10 @@ bot.onText(/🍪/, (msg) => { // just 🍪 (needs to be a reply to work) gives 1
         else{
             const reciver = msg.reply_to_message.from
             if (userExists(giver.id) && userExists(reciver.id)){
-                if ((users[String(giver.id)] - amount) < 0) {
-                    bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + getMention(giver) + "'s cookiejar:\n"+ users[giver.id] +"🍪",messageOptions);
+                updateUser(giver.id, giver.username, giver.first_name, giver.last_name)
+                updateUser(reciver.id, reciver.username, reciver.first_name, reciver.last_name)
+                if ((users[String(giver.id)]['cookies'] - amount) < 0) {
+                    bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + getMention(giver) + "'s cookiejar:\n"+ users[giver.id]['cookies'] +"🍪",messageOptions);
                 }
                 else giveCookies(chatId, giver, reciver, amount)
             }
@@ -229,6 +243,7 @@ bot.onText(/\/cookiefruit (.+)/,(msg, match) =>{
     var winner
     if(!(fruit === undefined)){
         if (userExists(user.id)){ //Added this check before every minigame so if you try to play it without a cookiejar it tells you to make one
+            updateUser(user.id, user.username, user.first_name, user.last_name)
             //modcookie(user,-1,"/cookiefruit fee")
             const waah = Math.floor(Math.random() * 7)
             switch (waah){
@@ -283,6 +298,7 @@ bot.onText(/\/cookieslot (.+)/, (msg,match) =>{
     const user = msg.from
     const chatid = msg.chat.id
     if (userExists(user.id)){
+        updateUser(user.id, user.username, user.first_name, user.last_name)
         var bet = parseInt(match[1])
         if (isNaN(bet)) bet = 1
         modcookie(user,-bet,"/cookieslot fee")
@@ -377,6 +393,7 @@ bot.onText(/\/cookiechance/, (msg) =>{
     const luizo = { 'id': 271081666, 'username':'LuigiBrosNin' }
     var index
     if (userExists(user.id)){
+        updateUser(user.id, user.username, user.first_name, user.last_name)
         const luck = Math.floor(Math.random() * 100)
         switch (luck) {
             case 0:
@@ -663,25 +680,22 @@ bot.onText(/\/cookiechance/, (msg) =>{
                 modcookie(user, 6,"/cookiechance outcome "+luck)
                 break;
             case 70:
-                
-                //TODO: get username if it exists, otehrwise set to 'someone'
+                index = random(Object.length(users) - 1)
                 bot.getChatMember(msg.chat.id, Object.keys(users)[index]).then(member => {
                     let userObject = {
                         'id': Object.keys(users)[index],
                         'username': member.user.username
                     }
                     bot.sendMessage(chatid,"gain cookies\\!\noh wait, i gave them to the wrong dude\\.\\.\\.\n"+ getMention(member.user) +" gains 1🍪 by mistake",messageOptions)
-                    modcookie(Object.keys(users)[index], 1,"/cookiechance outcome "+luck)
+                    modcookie(member.user, 1,"/cookiechance outcome "+luck)
                 }, member => {
                     let userObject = {
                         'id': Object.keys(users)[index],
                         'username': 'someone'
                     }
-                    bot.sendMessage(chatid,"gain cookies\\!\noh wait, i gave them to the wrong dude\\.\\.\\.\n"+ userObject.username +" gains 1🍪 by mistake",messageOptions)
-                    modcookie(userObject, 1,"/cookiechance outcome "+luck)
+                    bot.sendMessage(chatid,"gain cookies\\!\noh wait, i gave them to the wrong dude\\.\\.\\.\n [" + users[Object.keys(users)[index]]['firstName'] + "](tg://user?id=" + Object.keys(users)[index] + ") gains 1🍪 by mistake",messageOptions)
+                    modcookie(users[Object.keys(users)[index]], 1,"/cookiechance outcome "+luck)
                 })
-                
-                
                 break;
             case 71:
                 bot.sendMessage(chatid,"you failed NNN this year\\. too bad\\! \n"+getMention(user)+" loses 3🍪 and godly powers",messageOptions)
