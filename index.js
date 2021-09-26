@@ -102,6 +102,7 @@ bot.onText(/\/cookiejar/, (msg) =>{
     const user = msg.from; //takes the entire user class
     var isPresent = false;
     loadUsers()
+    updateUser(user.id,user.username,user.first_name,user.last_name)
     //console.log(user); //prints the list on console, for debug purposes
     if (userExists(user.id)) { //when it finds the corresponding nickname sends the cookies you have
         bot.sendMessage(chatId,getMention(user)+"'s cookiejar:\n"+users[String(user.id)]['cookies']+"🍪",messageOptions)
@@ -181,8 +182,6 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
 });
 
 // TODO (maybe) : implement the format "give name <amount>"
-// leaderboard (done good)
-// fix bot crashing when a new user gets created
 
 bot.onText(/\/give/, (msg) => { // just /give (needs to be a reply to work) gives 1 cookie without specifying the amount
     if (msg.text === '/give') //This should work
@@ -819,56 +818,24 @@ bot.onText(/\/cookiechance/, (msg) =>{
     else bot.sendMessage(chatid,'you need a cookiejar to play games, type /cookiejar to make one')
 });
 
-/*
-//Global variables needed for recursive function
-let message = ''
-let userIndex = 0
-let position = 0
-
-function sort_obj(obj){
-    //Turns dictionary-like object into a matrix
-    let items = Object.keys(obj).map(function(key){
-        return [key, obj[key]]
-    })
-    //Sorts in ascending order
-    items.sort((a, b) => b[1] - a[1])
-    
-    return items
-}
-//Recursive function that handles matching user IDs to their usernames if they are in the same chat as the user and builds the leaderboard
-function userIdHandler(users_array, msg){
-    //Makes sure the entry exists if there are less than 10 in the array
-    if (users_array[userIndex] != undefined){
-        //This function is asynchronous and returns a Promise type object therefore .then is needed to ensure that execution of future commands happens only when this one has concluded
-        bot.getChatMember(msg.chat.id, String(users_array[userIndex][0])).then(
-            //.then requires the definition of 2 functions which are used as callbacks when the Promise is resolved or rejected
-            //Resolve function (member is the value that is returned when the promise concludes but is not a requirement, alternate notation would be () => {})
-            member => {
-                message += String(position) + '\\. ' + getMention(member.user) + ' ' + String(users[member.user.id]) + '🍪\n'
-                if (userIndex === 9 || userIndex === Object.values(users).length - 1) bot.sendMessage(msg.chat.id,message,messageOptions)
-                else{
-                    userIndex++
-                    position++
-                    userIdHandler(users_array, msg)
-                }
-            },
-            //Rejection callback function
-            member => {
-                if (userIndex === 9 || userIndex === Object.values(users).length - 1) bot.sendMessage(msg.chat.id,message,messageOptions)
-                else{
-                    userIndex++
-                    userIdHandler(users_array, msg)
-                }
-        })
-    }
-    
-}
 
 bot.onText(/\/leaderboard/, (msg) =>{
     loadUsers()
-    let users_array = sort_obj(users)
-    message = 'Leaderboard: \n'
-    userIndex = 0
-    position = 1
-    //userIdHandler(users_array, msg)
-}) */
+    const chatId = msg.chat.id;
+    var array = Object.values(users)
+    array.sort(function(a,b) { return b['cookies'] - a['cookies'] } );
+    message = '🏆Leaderboard: \n'
+    var num = 0
+    for (let [user, other] of Object.entries(users)) {
+        message = message +(num+1)+"\\) "+ array[num].firstName + " " + array[num].lastName + ": " + array[num].cookies +"🍪\n" 
+        num++
+        if (num >= 10) break
+    }
+    message = message.replace("-","\\-")
+    message = message.replace("_","\\_")
+    message = message.replace("~","\\~")
+    message = message.replace("`","\\`")
+    message = message.replace(".","\\.")
+    message = message.replace("!","\\!")
+    bot.sendMessage(chatId, message,messageOptions)
+})
