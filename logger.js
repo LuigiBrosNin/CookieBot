@@ -29,12 +29,12 @@ function checkUsername(user){
 }
 
 function giveLog(giver, reciver, amount){
-    fs.appendFile(loggeroni, "[" + dateAndTime() + "] " + giver.id + " ("+ checkUsername(giver) +") gave "+ amount +"🍪 to "+ reciver.id + " (" + checkUsername(giver) + ")\n",() => {})
+    fs.appendFile(loggeroni, "[" + dateAndTime() + "] " + giver.id + " ("+ checkUsername(giver) +") gave "+ amount +"🍪 to "+ reciver.id + " (" + checkUsername(reciver) + ")\n",() => {})
     cleanFile()
 }
 
 function modLog(user, amount, reason){
-    fs.appendFile(loggeroni, "[" + dateAndTime() + "] " + user.id + " (" + checkUsername(user) + ") recieved/lost "+ amount +"🍪 from " + reason + "\n",() => {})
+    fs.appendFile(loggeroni, "[" + dateAndTime() + "] " + user.id + " (" + checkUsername(user) + ") recieved "+ amount +"🍪 from " + reason + "\n",() => {})
     cleanFile()
 }
 

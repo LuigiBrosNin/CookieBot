@@ -1,5 +1,16 @@
 {
-    "271081666": 946,
-    "448273660": 8,
-    "948678601": 0
+    "271081666": {
+        "id": "271081666",
+        "username": "LuigiBrosNin",
+        "cookies": 46,
+        "firstName": "🐰 Luizo",
+        "lastName": "CEO di Betto"
+    },
+    "336310762": {
+        "id": "336310762",
+        "username": "Chrifamoso002",
+        "firstName": "Chri-famoso",
+        "lastName": "002",
+        "cookies": 13
+    }
 }

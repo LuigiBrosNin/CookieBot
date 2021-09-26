@@ -1,6 +1,6 @@
 const TelegramBot = require('node-telegram-bot-api');
 const logger = require('./logger')
-const userClass = require('./userClass')
+//const userClass = require('./userClass')
 
 const token = '282811649:AAHrmy3pXmhAUs9vDrvJJLaX2IBKGRF6aiQ';
 
@@ -26,7 +26,7 @@ function loadUsers(){ //copies the list of cookiejars into a dictioary
             logger.errorLog(err)
             return
         }
-        var i = 0
+        //console.log(data);
         users = JSON.parse(data)
     })
 }
@@ -49,7 +49,7 @@ function updateUser(id, username, firstName, lastName){
 function userExists(userID){ //Checks if the user is already present in the users json file
     loadUsers()
     for (let [user, other] of Object.entries(users)) { //goes through the dictionary and returns a touple with user, cookie amount pairs
-        if (user['id'] === String(userID)) { //when it finds the corresponding nickname returns true
+        if (user === String(userID)) { //when it finds the corresponding id returns true
             return true
         }
     }
@@ -83,14 +83,28 @@ function giveCookies(chatId, giver, reciever, amount){ //Used to exchange cookie
     logger.giveLog(giver, reciever, amount)
 }
 
+function get_random_id() {
+    loadUsers()
+    var random = Math.floor(Math.random() * Object.entries(users).length)
+    var index = 0
+    for (let [user, other] of Object.entries(users)) 
+    {
+        if (random == index) {
+            var ret = user
+        }
+        index++
+    }
+    return ret
+}
+
 bot.onText(/\/cookiejar/, (msg) =>{
     const chatId = msg.chat.id;
     const user = msg.from; //takes the entire user class
     var isPresent = false;
     loadUsers()
-    console.log(user); //prints the list on console, for debug purposes
+    //console.log(user); //prints the list on console, for debug purposes
     if (userExists(user.id)) { //when it finds the corresponding nickname sends the cookies you have
-        bot.sendMessage(chatId,getMention(user)+"'s cookiejar:\n"+users[String(user.id)]+"🍪",messageOptions)
+        bot.sendMessage(chatId,getMention(user)+"'s cookiejar:\n"+users[String(user.id)]['cookies']+"🍪",messageOptions)
     }
     else { //if the user is a new user, creates a new cookiejar with 10 cookies in it
         users[String(user.id)] = {
@@ -124,28 +138,25 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
         return x !== ''
     })
     var reciver = null
-    console.log(name_amount);
-    if (msg.entities != undefined){
-        for (var entity of Object.entries(msg.entities)){ //Checks the message entities and looks for the first mention
-            if (entity.type === 'mention'){
-                reciver = entity.user
-                break
-            }
+    for (let [user, other] of Object.entries(users)) 
+    {
+        if (("@"+users[user]['username']) == name_amount[0]) {
+            reciver = user;
         }
     }
-    
+    const reciv = users[reciver]
     if (reciver != null) { //treat as /give @ n
-        if (userExists(giver.id) && userExists(reciver.id)) {
+        if (userExists(giver.id) && userExists(reciv.id)) {
         // ^found the reciver and giver jars
             updateUser(giver.id, giver.username, giver.first_name, giver.last_name)
-            updateUser(reciver.id, reciver.username, reciver.first_name, reciver.last_name)
+            updateUser(reciv.id, reciv.username, reciv.firstName, reciv.lastName)
             const amount = parseInt(name_amount[1]); //converts whatever's after the @user
             if (isNaN(amount)) amount = 1; //Invalid numbers are set to 1
             if ((users[String(giver.id)]['cookies'] - amount) < 0) { //calculates your cookies after you give them away (how could you?!?)
                 bot.sendMessage(chatId, "sorry, you don't have enough cookies to give "+ amount + "🍪 :(\n" + getMention(giver) + "'s cookiejar:\n"+ users[String(giver.id)]['cookies'] +"🍪",messageOptions);
             }
             else{
-                giveCookies(chatId, giver, reciver, amount)
+                giveCookies(chatId, giver, reciv, amount)
             }
         }
         else bot.sendMessage(chatId, "you or the reciever don't have a cookiejar");
@@ -169,8 +180,9 @@ bot.onText(/\/give (.+)/, (msg, match) => { //   /give @username <amount> (does 
     else bot.sendMessage(chatId,"how to use the /give command:\n1. /give (your message needs to be a reply)\n2. /give <amount> (needs to be a reply)\n3. /give @username <amount>");
 });
 
-// TODO (maybe) : implement the format "give name <amount>" this will be tough cuz it needs to check everyone's name in the group and get its id\\. 
-// saving the name along with the id in the txt is not an option since that would cause many other issues with searching and recognising a cookiejar, also updating eventually changing names
+// TODO (maybe) : implement the format "give name <amount>"
+// leaderboard (done good)
+// fix bot crashing when a new user gets created
 
 bot.onText(/\/give/, (msg) => { // just /give (needs to be a reply to work) gives 1 cookie without specifying the amount
     if (msg.text === '/give') //This should work
@@ -390,8 +402,8 @@ bot.onText(/\/cookieslot (.+)/, (msg,match) =>{
 bot.onText(/\/cookiechance/, (msg) =>{
     const user = msg.from
     const chatid = msg.chat.id
-    const luizo = { 'id': 271081666, 'username':'LuigiBrosNin' }
-    var index
+    const luizo = users[271081666]
+    var recc = 271081666
     if (userExists(user.id)){
         updateUser(user.id, user.username, user.first_name, user.last_name)
         const luck = Math.floor(Math.random() * 100)
@@ -589,14 +601,14 @@ bot.onText(/\/cookiechance/, (msg) =>{
                 modcookie(user, -4,"/cookiechance outcome "+luck)
                 break;
             case 48:
-                index = Math.floor(Math.random() * users.length)
-                bot.sendMessage(chatid,""+Object.keys(users)[index]+" found a way to hijack your cookiejar and stole a cookie\\!\n"+getMention(user)+" loses 1🍪\nbut "+Object.keys(users)[index]+" gains a 🍪\\!",messageOptions)
-                giveCookies(chatid,user,Object.keys(users)[index], 1)
+                recc = get_random_id()
+                bot.sendMessage(chatid,""+ getMention(users[recc]) + " found a way to hijack your cookiejar and stole a cookie\\!\n"+getMention(user)+" loses 1🍪\nbut "+ getMention(users[recc]) +" gains a 🍪\\!",messageOptions)
+                giveCookies(chatid,user,users[recc], 1)
                 break;
             case 49:
-                index = Math.floor(Math.random() * users.length)
-                bot.sendMessage(chatid,""+Object.keys(users)[index]+" stole a cookie while you were in horny jail\n"+getMention(user)+" loses 1🍪\nbut "+Object.keys(users)[index]+" gains a 🍪\\!",messageOptions)
-                giveCookies(chatid,user,Object.keys(users)[index], 1)
+                recc = get_random_id() 
+                bot.sendMessage(chatid,""+ getMention(users[recc]) +" stole a cookie while you were in horny jail\n"+getMention(user)+" loses 1🍪\nbut "+ getMention(users[recc]) +" gains a 🍪\\!",messageOptions)
+                giveCookies(chatid,user,users[recc], 1)
                 break;
             case 50:
                 bot.sendMessage(chatid,"bro, that way pretty cringe ngl\\.\n"+getMention(user)+" loses 3🍪 and the \"memelord\" tag",messageOptions)
@@ -618,7 +630,7 @@ bot.onText(/\/cookiechance/, (msg) =>{
                 bot.sendMessage(chatid,"you left the mic unmuted during the break\n"+getMention(user)+" loses 4🍪 but gains an invitation to X factor",messageOptions)
                 modcookie(user, -4,"/cookiechance outcome "+luck)
                 break;
-            case 55: //keep going from here.
+            case 55:
                 bot.sendMessage(chatid,"your personal cookiebaking machine became obsolite, you should change it\\.\n"+getMention(user)+" loses 5🍪 for trying to sell your grandma\\. not cool\\.",messageOptions)
                 modcookie(user, -5,"/cookiechance outcome "+luck)
                 break;
@@ -663,9 +675,9 @@ bot.onText(/\/cookiechance/, (msg) =>{
                 modcookie(user, -3,"/cookiechance outcome "+luck)
                 break;
             case 66:
-                index = Math.floor(Math.random() * users.length)
-                bot.sendMessage(chatid,"/give "+Object.keys(users)[index]+" 1\n"+getMention(user)+" loses 1🍪\nbut "+Object.keys(users)[index]+" gains a 🍪\\!\n\\(that's how /give works duh\\)",messageOptions)
-                giveCookies(chatid,user,Object.keys(users)[index], 1)
+                recc = get_random_id() 
+                bot.sendMessage(chatid,"/give " + getMention(users[recc]) +" 1\n"+getMention(user)+" loses 1🍪\nbut "+ getMention(users[recc]) +" gains a 🍪\\!\n\\(that's how /give works duh\\)",messageOptions)
+                giveCookies(chatid,user,users[recc], 1)
                 break;
             case 67:
                 bot.sendMessage(chatid,"shrek demands some of your cookies\\. you can't really say no\\.\n"+getMention(user)+" loses 4🍪 but can now stay in the swamp",messageOptions)
@@ -680,22 +692,9 @@ bot.onText(/\/cookiechance/, (msg) =>{
                 modcookie(user, 6,"/cookiechance outcome "+luck)
                 break;
             case 70:
-                index = random(Object.length(users) - 1)
-                bot.getChatMember(msg.chat.id, Object.keys(users)[index]).then(member => {
-                    let userObject = {
-                        'id': Object.keys(users)[index],
-                        'username': member.user.username
-                    }
-                    bot.sendMessage(chatid,"gain cookies\\!\noh wait, i gave them to the wrong dude\\.\\.\\.\n"+ getMention(member.user) +" gains 1🍪 by mistake",messageOptions)
-                    modcookie(member.user, 1,"/cookiechance outcome "+luck)
-                }, member => {
-                    let userObject = {
-                        'id': Object.keys(users)[index],
-                        'username': 'someone'
-                    }
-                    bot.sendMessage(chatid,"gain cookies\\!\noh wait, i gave them to the wrong dude\\.\\.\\.\n [" + users[Object.keys(users)[index]]['firstName'] + "](tg://user?id=" + Object.keys(users)[index] + ") gains 1🍪 by mistake",messageOptions)
-                    modcookie(users[Object.keys(users)[index]], 1,"/cookiechance outcome "+luck)
-                })
+                recc = get_random_id()
+                    bot.sendMessage(chatid,"gain cookies\\!\noh wait, i gave them to the wrong dude\\.\\.\\.\n"+ getMention(users[recc]) +" gains 1🍪 by mistake",messageOptions)
+                    modcookie(users[recc], 1,"/cookiechance outcome "+luck)
                 break;
             case 71:
                 bot.sendMessage(chatid,"you failed NNN this year\\. too bad\\! \n"+getMention(user)+" loses 3🍪 and godly powers",messageOptions)
@@ -726,9 +725,9 @@ bot.onText(/\/cookiechance/, (msg) =>{
                 modcookie(user, -1,"/cookiechance outcome "+luck)
                 break;
             case 78:
-                index = Math.floor(Math.random() * users.length)
-                bot.sendMessage(chatid,"POV: you're in Naples\\.\n "+Object.keys(users)[index]+" steals from you\\.\n"+getMention(user)+" loses 1🍪\nbut "+Object.keys(users)[index]+" gains a 🍪\\!\n\\(that's how /give works duh\\)",messageOptions)
-                giveCookies(chatid,user,Object.keys(users)[index], 1)
+                recc = get_random_id()
+                bot.sendMessage(chatid,"POV: you're in Naples\\.\n "+getMention(users[recc])+" steals from you\\.\n"+getMention(user)+" loses 1🍪\nbut "+getMention(users[recc])+" gains a 🍪\\!\n\\(that's how /give works duh\\)",messageOptions)
+                giveCookies(chatid,user,users[recc], 1)
                 break;
             case 79:
                 bot.sendMessage(chatid,"you forgot the ogre's name from the movie Shrek\\.\n"+getMention(user)+" loses 1🍪 but gains alzheimer",messageOptions)
@@ -819,6 +818,8 @@ bot.onText(/\/cookiechance/, (msg) =>{
     }
     else bot.sendMessage(chatid,'you need a cookiejar to play games, type /cookiejar to make one')
 });
+
+/*
 //Global variables needed for recursive function
 let message = ''
 let userIndex = 0
@@ -869,5 +870,5 @@ bot.onText(/\/leaderboard/, (msg) =>{
     message = 'Leaderboard: \n'
     userIndex = 0
     position = 1
-    userIdHandler(users_array, msg)
-})
+    //userIdHandler(users_array, msg)
+}) */
